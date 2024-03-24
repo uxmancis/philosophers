@@ -6,67 +6,25 @@
 /*   By: uxmancis <uxmancis@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/16 14:52:00 by uxmancis          #+#    #+#             */
-/*   Updated: 2024/03/16 17:28:18 by uxmancis         ###   ########.fr       */
+/*   Updated: 2024/03/23 18:54:33 by uxmancis         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-int get_rule_1 (char **argv)
-{
-	int result;
+unsigned int ledger = 0;
 
-	result = ft_atoi(argv);
-	//printf("exec.c get_rule_1 | result = %d\n", result);
-	return (result);
-}
- 
-int get_rule_2 (char **argv)
-{
-	(void)argv;
-	return (0);
-}
-
-int get_rule_3 (char **argv)
-{
-	(void)argv;
-	return (0);
-}
-int get_rule_4 (char **argv)
-{
-	(void)argv;
-	return (0);
-}
-
-int get_rule_5 (char **argv)
-{
-	(void)argv;
-	return (0);
-}
-
-/*DESCRIPTION set_rules:
-*	set_rules function gets the rules defined when executing ./philo program
-*
-*	The rules must be indicated only using [0-9] digits as we are talking
-*	about time.
-*
-*	4 or 5 rules will need to be defined to execute ./philo program, as 
-*	5th rule is optional to the user.
-*---------------------------------------------------------------------------*/
-void set_rules (int argc, char **argv, t_args *rules)
-{
-	(void)argc;
-	rules->number_of_philosophers = get_rule_1(argv);
-	//printf("set_rules | number_of_philosophers = %d\n", rules->number_of_philosophers);
-    rules->time_to_die = get_rule_2(argv);
-    rules->time_to_die = get_rule_3(argv);
-	rules->time_to_sleep = get_rule_4(argv);
-	rules->number_of_times_each_philosopher_must_eat = get_rule_5(argv);
-}
+pthread_mutex_t ledger_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *ft_actions(void *data)
 {
 	(void)data;
+
+	pthread_mutex_lock(&ledger_lock); //🔒lock
+	ledger = ledger + 1; //action = critial section
+	pthread_mutex_unlock(&ledger_lock); //🔓unlock
+	
+	//printf("ledger = %d\n", ledger);	
 	//timestamp_in_ms X has taken a fork
 	//timestamp_in_ms X is eating
 	//timestamp_in_ms X is sleeping
@@ -103,16 +61,17 @@ int create_philo_threads(t_args rules)
 	keep_number_of_philosophers = rules.number_of_philosophers;
 	while (rules.number_of_philosophers > 0)
 	{
-		if (pthread_create(&philosopher[i], NULL, ft_actions, NULL) != 0)
+		if (pthread_create(&philosopher[i], NULL, ft_actions, NULL) != 0) //"&philosohper[i]" sinónimo de "philosohper + i"
 			return(1);
 		rules.number_of_philosophers--;
 		i++;  
 		//counter++;
 	}
-	/*i = keep_number_of_philosophers;
-	while (i > 0)
+	//keep_number_of_philosophers;
+	/*i = 0;
+	while (i < keep_number_of_philosophers)
 	{
-		printf("ID Philosopher (thread) = %d\n", philosopher[i]); //%lu = unsigned long int
+		printf("ID Philosopher (thread) = %lu\n", (unsigned long)philosopher[i]); //%lu = unsigned long int
 		i++;
 	}*/
 	i = 0;
@@ -122,6 +81,7 @@ int create_philo_threads(t_args rules)
 		keep_number_of_philosophers--;
 		i++;
 	}
+	printf("final ledger = %d\n", ledger);
 	//printf("counter (nb of created threads) = %d\n", counter);
 	return (0);
 }
@@ -134,13 +94,14 @@ int create_philo_threads(t_args rules)
 int exec_philo(int argc, char **argv)
 {
 	t_args rules;
-	
-    set_rules(argc, argv, &rules);
+
+    get_rules(argc, argv, &rules);
 	printf("number of philosophers = %d\n", rules.number_of_philosophers); //great!! rules are correctly updated
+	pthread_mutex_init(&ledger_lock, NULL);
 	if (create_philo_threads(rules) == 1)
 	{
 		putmessage3();
 		return(1); //error found when creating threads
 	}
-	return (0); //everything when correctly
+	return (0); //everything went correctly
 }
